@@ -11,6 +11,10 @@
         "**/base_templates/**/*.html": "django-html",
         "**/requirements{/**,*}.{txt,in}": "pip-requirements",
         "utility": "cpp",
-        "iostream": "cpp"
+        "iostream": "cpp",
+        "array": "cpp",
+        "string_view": "cpp",
+        "initializer_list": "cpp",
+        "span": "cpp"
     }
 }

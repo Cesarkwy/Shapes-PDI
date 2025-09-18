@@ -29,24 +29,74 @@ Curve evalBezier( const vector< Vector3f >& P, unsigned steps )
         exit( 0 );
     }
 
-    // TODO:
-    // You should implement this function so that it returns a Curve
-    // (e.g., a vector< CurvePoint >).  The variable "steps" tells you
-    // the number of points to generate on each piece of the spline.
-    // At least, that's how the sample solution is implemented and how
-    // the SWP files are written.  But you are free to interpret this
-    // variable however you want, so long as you can control the
-    // "resolution" of the discretized spline curve with it.
-
-    // Make sure that this function computes all the appropriate
-    // Vector3fs for each CurvePoint: V,T,N,B.
-    // [NBT] should be unit and orthogonal.
-
-    // Also note that you may assume that all Bezier curves that you
-    // receive have G1 continuity.  Otherwise, the TNB will not be
-    // be defined at points where this does not hold.
-
-    cerr << "\t>>> evalBezier has been called with the following input:" << endl;
+    /* Implementação de Curvas de Bézier
+     *
+     * 1. Equação da Curva de Bézier Cúbica:
+     *    B(t) = (1-t)³P₀ + 3t(1-t)²P₁ + 3t²(1-t)P₂ + t³P₃
+     *    onde t ∈ [0,1]
+     *
+     * 2. Cálculo da Tangente (primeira derivada):
+     *    B'(t) = 3(1-t)²(P₁-P₀) + 6t(1-t)(P₂-P₁) + 3t²(P₃-P₂)
+     *
+     * 3. Sistema de Coordenadas Local (Frame de Frenet):
+     *    - T: Tangente (direção do movimento)
+     *    - N: Normal (perpendicular à tangente)
+     *    - B: Binormal (produto vetorial de T e N)
+     */
+    
+    Curve curve;
+    
+    // Para cada segmento da curva
+    for (size_t i = 0; i < P.size() - 3; i += 3) {
+        Vector3f P0 = P[i];
+        Vector3f P1 = P[i + 1];
+        Vector3f P2 = P[i + 2];
+        Vector3f P3 = P[i + 3];
+        
+        // Gera pontos ao longo do segmento
+        for (unsigned j = 0; j <= steps; ++j) {
+            float t = (float)j / steps;
+            
+            // Cálculo do ponto na curva usando a fórmula de Bézier
+            float t2 = t * t;
+            float t3 = t2 * t;
+            float mt = 1 - t;
+            float mt2 = mt * mt;
+            float mt3 = mt2 * mt;
+            
+            // Posição do ponto (V)
+            Vector3f V = mt3 * P0 + 3 * mt2 * t * P1 + 
+                        3 * mt * t2 * P2 + t3 * P3;
+            
+            // Tangente (T) - primeira derivada normalizada
+            Vector3f T = (-3 * mt2 * P0 + 3 * (1 - 4*t + 3*t2) * P1 + 
+                         3 * (2*t - 3*t2) * P2 + 3 * t2 * P3).normalized();
+            
+            // Cálculo do frame TNB usando o método de Frenet
+            Vector3f B, N;
+            
+            // Escolhe um vetor auxiliar não paralelo a T
+            Vector3f aux = (fabs(T[0]) < 0.9f) ? Vector3f(1, 0, 0) : Vector3f(0, 1, 0);
+            
+            // Calcula B como produto vetorial de T e aux
+            B = Vector3f::cross(T, aux).normalized();
+            
+            // Calcula N como produto vetorial de B e T
+            N = Vector3f::cross(B, T).normalized();
+            
+            // Adiciona o ponto à curva
+            CurvePoint cp;
+            cp.V = V;  // Posição
+            cp.T = T;  // Tangente
+            cp.N = N;  // Normal
+            cp.B = B;  // Binormal
+            
+            // Só adiciona se não for duplicado do último ponto
+            if (curve.empty() || !approx(curve.back().V, cp.V)) {
+                curve.push_back(cp);
+            }
+        }
+    }
 
     cerr << "\t>>> Control points (type vector< Vector3f >): "<< endl;
     for( unsigned i = 0; i < P.size(); ++i )
@@ -70,24 +120,84 @@ Curve evalBspline( const vector< Vector3f >& P, unsigned steps )
         exit( 0 );
     }
 
-    // TODO:
-    // It is suggested that you implement this function by changing
-    // basis from B-spline to Bezier.  That way, you can just call
-    // your evalBezier function.
-
-    cerr << "\t>>> evalBSpline has been called with the following input:" << endl;
-
-    cerr << "\t>>> Control points (type vector< Vector3f >): "<< endl;
-    for( unsigned i = 0; i < P.size(); ++i )
-    {
-        cerr << "\t>>> " << P[i] << endl;
+    /* Implementação de B-splines Cúbicas
+     *
+     * 1. Matriz de Base B-spline uniforme:
+     *    M = (1/6) * [-1  3 -3  1]
+     *                 [ 3 -6  3  0]
+     *                 [-3  0  3  0]
+     *                 [ 1  4  1  0]
+     *
+     * 2. Equação da Curva:
+     *    S(t) = 1/6 * [t³ t² t 1] * M * [P₀ P₁ P₂ P₃]ᵀ
+     *         = (1/6) * [(-t³+3t²-3t+1)P₀ + (3t³-6t²+4)P₁ + 
+     *                    (-3t³+3t²+3t+1)P₂ + (t³)P₃]
+     *
+     * 3. Propriedades:
+     *    - Continuidade C² entre segmentos
+     *    - Controle local (cada ponto afeta apenas 4 segmentos)
+     *    - Curva não passa pelos pontos de controle
+     */
+    
+    Curve curve;
+    
+    // Para cada segmento da B-spline
+    for (size_t i = 0; i < P.size() - 3; ++i) {
+        Vector3f P0 = P[i];
+        Vector3f P1 = P[i + 1];
+        Vector3f P2 = P[i + 2];
+        Vector3f P3 = P[i + 3];
+        
+        // Gera pontos ao longo do segmento
+        for (unsigned j = 0; j <= steps; ++j) {
+            float t = (float)j / steps;
+            float t2 = t * t;
+            float t3 = t2 * t;
+            
+            // Coeficientes da base B-spline
+            float b0 = (-t3 + 3*t2 - 3*t + 1) / 6.0f;
+            float b1 = (3*t3 - 6*t2 + 4) / 6.0f;
+            float b2 = (-3*t3 + 3*t2 + 3*t + 1) / 6.0f;
+            float b3 = t3 / 6.0f;
+            
+            // Posição do ponto na curva
+            Vector3f V = b0 * P0 + b1 * P1 + b2 * P2 + b3 * P3;
+            
+            // Derivadas da base para tangente
+            float d0 = (-3*t2 + 6*t - 3) / 6.0f;
+            float d1 = (9*t2 - 12*t) / 6.0f;
+            float d2 = (-9*t2 + 6*t + 3) / 6.0f;
+            float d3 = (3*t2) / 6.0f;
+            
+            // Tangente (primeira derivada)
+            Vector3f T = (d0 * P0 + d1 * P1 + d2 * P2 + d3 * P3).normalized();
+            
+            // Sistema de coordenadas local (Frame de Frenet)
+            Vector3f N, B;
+            
+            // Escolhe vetor auxiliar não paralelo a T
+            Vector3f aux = (fabs(T[0]) < 0.9f) ? Vector3f(1, 0, 0) : Vector3f(0, 1, 0);
+            
+            // Calcula B como produto vetorial de T e aux
+            B = Vector3f::cross(T, aux).normalized();
+            
+            // Calcula N como produto vetorial de B e T
+            N = Vector3f::cross(B, T).normalized();
+            
+            // Adiciona o ponto à curva
+            CurvePoint cp;
+            cp.V = V;
+            cp.T = T;
+            cp.N = N;
+            cp.B = B;
+            
+            if (curve.empty() || !approx(curve.back().V, cp.V)) {
+                curve.push_back(cp);
+            }
+        }
     }
-
-    cerr << "\t>>> Steps (type steps): " << steps << endl;
-    cerr << "\t>>> Returning empty curve." << endl;
-
-    // Return an empty curve right now.
-    return Curve();
+    
+    return curve;
 }
 
 Curve evalCircle( float radius, unsigned steps )
