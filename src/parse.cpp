@@ -1,4 +1,6 @@
 #include "parse.h"
+#include "curve.h"
+#include "extra_features.h"
 #include <map>
 using namespace std;
 
@@ -182,6 +184,21 @@ bool parseFile(istream &in,
             surfaceNames.push_back(objName);
             if (named) surfaceIndex[objName] = surfaceNames.size()-1;
         }
+        // ---------------------------
+        // Catmull-Rom (2D)
+        // ---------------------------
+        else if (objType == "catmull" || objType == "catmullrom")
+        {
+            cerr << " lendo catmull-rom " << "[" << objName << "]" << endl;
+            in >> steps;
+            // lê pontos 2D e avalia Catmull-Rom
+            curves.push_back( evalCatmullRom(cpsToAdd = readCps(in, 2), steps) );
+            curveNames.push_back(objName);
+            dims.push_back(2);
+            if (named) curveIndex[objName] = dims.size()-1;
+        }
+
+
         else if (objType == "gcyl")
         {
             cerr << " lendo gcyl " << "[" << objName << "]" << endl;
