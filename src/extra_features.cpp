@@ -48,6 +48,31 @@ const Material MATERIAL_GLASS = {
     96.0f                       // brilho
 };
 
+const Material MATERIAL_RUBY = {
+    {0.1745f, 0.01175f, 0.01175f, 1.0f},    // ambiente
+    {0.61424f, 0.04136f, 0.04136f, 1.0f},   // difusa
+    {0.727811f, 0.626959f, 0.626959f, 1.0f}, // especular
+    76.8f                                    // brilho
+};
+
+const Material MATERIAL_CHROME = {
+    {0.25f, 0.25f, 0.25f, 1.0f},     // ambiente
+    {0.4f, 0.4f, 0.4f, 1.0f},        // difusa
+    {0.774597f, 0.774597f, 0.774597f, 1.0f}, // especular
+    76.8f                                    // brilho
+};
+
+const Material MATERIAL_PEARL = {
+    {0.25f, 0.20725f, 0.20725f, 1.0f},      // ambiente
+    {1.0f, 0.829f, 0.829f, 1.0f},           // difusa
+    {0.296648f, 0.296648f, 0.296648f, 1.0f}, // especular
+    11.264f                                  // brilho
+};
+
+// Definição da variável global
+int NUM_MATERIALS = 5;  // Número total de materiais
+
+
 /**
  * @brief Aplica as propriedades de um material ao estado atual do OpenGL.
  * @param mat O material a ser aplicado.
@@ -60,6 +85,19 @@ void applyMaterial(const Material& mat) {
     glMaterialfv(GL_FRONT, GL_SPECULAR, mat.specular);
     glMaterialf(GL_FRONT, GL_SHININESS, mat.shininess);
 }
+
+// Retorna o material correspondente ao índice
+const Material& getMaterialByIndex(int index) {
+    switch(index) {
+        case 0: return MATERIAL_GOLD;
+        case 1: return MATERIAL_GLASS;
+        case 2: return MATERIAL_RUBY;
+        case 3: return MATERIAL_CHROME;
+        case 4: return MATERIAL_PEARL;
+        default: return MATERIAL_GOLD;
+    }
+}
+
 
 /* Implementação de Catmull-Rom splines
  * Características:

@@ -16,6 +16,7 @@
 #include "surf.h"
 #include "extra.h"
 #include "camera.h"
+#include "extra_features.h"
 
 using namespace std;
 
@@ -36,6 +37,7 @@ namespace
     int  gCurveMode = 1;
     int  gSurfaceMode = 1;
     int  gPointMode = 1;
+    int gCurrentMaterial = 0; // Índice do material atual
 
     // Isso determina o quão grande desenhar as normais
     const float gLineLen = 0.1f;
@@ -96,7 +98,13 @@ namespace
         case 'p':
         case 'P':
             gPointMode = (gPointMode+1)%2;
-            break;            
+            break;  
+        case 'm':
+        case 'M':
+            gCurrentMaterial = (gCurrentMaterial + 1) % NUM_MATERIALS;
+            makeDisplayLists(); // Recria as listas de exibição para aplicar o novo material
+            cout << "Material atual: " << gCurrentMaterial << endl;
+            break;          
         default:
             cout << "Tecla nao tratada " << key << "." << endl;        
         }
@@ -331,7 +339,7 @@ namespace
         gAxisList = glGenLists(1);
         gPointList = glGenLists(1);
 
-        // Compila as listas de exibição
+        // Compile the display lists
         
         glNewList(gCurveLists[1], GL_COMPILE);
         {
@@ -349,6 +357,7 @@ namespace
         
         glNewList(gSurfaceLists[1], GL_COMPILE);
         {
+            applyMaterial(getMaterialByIndex(gCurrentMaterial));  // Aplicar material atual
             for (unsigned i=0; i<gSurfaces.size(); i++)
                 drawSurface(gSurfaces[i], true);
         }
@@ -356,6 +365,7 @@ namespace
 
         glNewList(gSurfaceLists[2], GL_COMPILE);
         {
+            applyMaterial(getMaterialByIndex(gCurrentMaterial));  // Aplicar material atual
             for (unsigned i=0; i<gSurfaces.size(); i++)
             {
                 drawSurface(gSurfaces[i], false);
@@ -366,10 +376,10 @@ namespace
 
         glNewList(gAxisList, GL_COMPILE);
         {
-            // Salva o estado atual do OpenGL
+            // Save current state of OpenGL
             glPushAttrib(GL_ALL_ATTRIB_BITS);
 
-            // Para desenhar os eixos quando o botão do mouse está pressionado
+            // This is to draw the axes when the mouse button is down
             glDisable(GL_LIGHTING);
             glLineWidth(3);
             glPushMatrix();
@@ -393,10 +403,10 @@ namespace
 
         glNewList(gPointList, GL_COMPILE);
         {
-            // Salva o estado atual do OpenGL
+            // Save current state of OpenGL
             glPushAttrib(GL_ALL_ATTRIB_BITS);
 
-            // Configuração para desenho de pontos
+            // Setup for point drawing
             glDisable(GL_LIGHTING);    
             glColor4f(1,1,0.0,1);
             glPointSize(4);

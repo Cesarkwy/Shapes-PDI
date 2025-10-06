@@ -23,9 +23,14 @@ struct Material {
 // Materiais predefinidos
 extern const Material MATERIAL_GOLD;
 extern const Material MATERIAL_GLASS;
+extern const Material MATERIAL_RUBY;
+extern const Material MATERIAL_CHROME;
+extern const Material MATERIAL_PEARL;
+extern int NUM_MATERIALS; //Número total de materiais
 
 // Funções para materiais
 void applyMaterial(const Material& mat);
+const Material& getMaterialByIndex(int index); // Função para obter material por índice
 
 // Funções para splines Catmull-Rom
 Curve evalCatmullRom(const std::vector<Vector3f>& points, unsigned steps);
